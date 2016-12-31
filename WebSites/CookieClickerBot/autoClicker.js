@@ -64,7 +64,7 @@ var autoBuyer = async function() {
 
 		BuyUpgrades();
 
-        if (MultipleBuffsAreActive) {
+        if (MultipleBuffsAreActive()) {
             buyBuildings = false;
         }
 
@@ -74,7 +74,7 @@ var autoBuyer = async function() {
 		}
 	}
 	
-	return autoBuyer(index);
+	return autoBuyer();
 };
 
 function BuyUpgrades() {
@@ -91,7 +91,7 @@ function BuyUpgrades() {
         if (upgrades.length !== 0) {
             upgrades.click();
             buyBuildings = true;
-            if (MultipleBuffsAreActive) {
+            if (MultipleBuffsAreActive()) {
                 buyBuildings = false;
             }
         }
@@ -103,24 +103,6 @@ function BuyUpgrades() {
 }
 
 function BuyBuilding() {
-
-    var availableShopIndex = -1;
-    var previousAvailableShopRatio = 0;
-
-    var availableShops = $(".product.unloced.enabled");
-    for (var i = 0; i < availableShops.length; i++) {
-        var availableShopPriceText = $(availableShops[i]).find(".price").text();
-        var availableShopPrice = GetAmount(availableShopPriceText);
-
-        var cookiesPerSecondText = $(Game.ObjectsById[i].tooltip()).find(".data b").first().text();
-        var cookiesPerSecond = GetAmount(cookiesPerSecondText);
-
-        var availableShopRatio = cookiesPerSecond / availableShopPrice;
-        if (availableShopRatio > previousAvailableShopRatio) {
-            availableShopIndex = i;
-        }
-    }
-
     var index = -1;
     var previousRatio = 0;
 
@@ -129,7 +111,7 @@ function BuyBuilding() {
 
         var buildingPriceText = $(shops[i]).find(".price").text();
         var buildingPrice = GetAmount(buildingPriceText);
-        var timeToBuyBuilding = GetRemainingTimeToBuyUpdate(buildingPrice);
+        var timeToBuyBuilding = GetRemainingTimeToBuy(buildingPrice);
 
         var profitText =  $(Game.ObjectsById[i].tooltip()).find(".data b").first().text();
         var profit = GetAmount(profitText);
@@ -172,7 +154,7 @@ function ShouldBuyUpgrade() {
     if (buyUpgrades && $(".product.unlocked.enabled").length === 0 && $(".product.unlocked").length !== 0) {
 
         var upgradePrice = GetUpgradePrice();
-        var timeToBuyUpgrade = GetRemainingTimeToBuyUpdate(upgradePrice);
+        var timeToBuyUpgrade = GetRemainingTimeToBuy(upgradePrice);
 
         if (timeToBuyUpgrade <= 60) {
             buyBuildings = false;
@@ -184,7 +166,7 @@ function ShouldBuyUpgrade() {
             for (var i = 0; i < shops.length; i++){
                 var buildingPriceText = $(shops[i]).find(".price").text();
                 var buildingPrice = GetAmount(buildingPriceText);
-                var timeToBuyBuilding = GetRemainingTimeToBuyUpdate(buildingPrice);
+                var timeToBuyBuilding = GetRemainingTimeToBuy(buildingPrice);
 																				
                 if (timeToBuyBuilding < 180) {
                     buyBuildings = true;
@@ -244,7 +226,7 @@ function GetAmount(text) {
 	return amount;
 }
 
-function GetRemainingTimeToBuyUpdate(upgradeCost) {
+function GetRemainingTimeToBuy(upgradeCost) {
 	var cookies = $("#cookies").text().split("cookiesper second : ");
 	var currentCookies = GetAmount(cookies[0]);
 	var cookiesPerSecond = GetAmount(cookies[1]);
