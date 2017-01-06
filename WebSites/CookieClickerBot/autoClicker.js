@@ -4,9 +4,11 @@ var buyBuildings = true;
 var buyUpgrades = true;
 var stopClicker = false;
 var stopBuyer = false;
+var menuClosed = true;
+var runtime = 0;
 
 var reUpgradeDataFunction = /Game\.crate\(Game\.UpgradesById\[\d+\],\'store\',undefined,undefined,\d\)\(\);/;
-var reWrathCookie = /wrathCookie\.png/
+var reWrathCookie = /wrathCookie\.png/;
 
 var jq = document.createElement('script');
 jq.src = "https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js";
@@ -22,7 +24,22 @@ function log(message) {
 	console.warn(output);
 }
 
-var autoClicker = async function() {
+function GetRuntime() {
+    var timeParameters =  $("#menu .listing").eq(3).text().split(":")[1].trim().split(" ");
+    var digits = parseInt(timeParameters[0]);
+    var timeType = timeParameters[1];
+    if (timeType === "seconds" || timeType === "second" || runtime === "minutes" || runtime === "minute") {
+        runtime = 1;
+    } else if (timeType === "hours" || timeType === "hour") {
+        runtime = digits;
+    } else if (timeType === "days" || timeType === "day") {
+        runtime = digits * 24;
+    } 
+
+    setTimeout(GetRuntime, 60000);
+}
+
+function AutoClicker() {
 	if (stopClicker) {
 		return;
 	}
@@ -32,36 +49,34 @@ var autoClicker = async function() {
 		var shimmers = $("#shimmers").children().each(function() {
 		    var wrathCookie = reWrathCookie.exec($(this).attr("style"));
             if (wrathCookie === null) {
-                $(this).click()
+                $(this).click();
             }
 		});
-
-		await sleep(1);
 	}
-  
-	return autoClicker();
+
+    setTimeout(AutoClicker, 10);
 };
 
-var openSpecialMenu = async function() {
-    menuClosed = true;
-    while (menuClosed) {
-        if (Game.specialTabs.length !== 0) {
-            Game.specialTab = Game.specialTabs[0];
-            menuClosed = false;
-        }
-        await sleep(10);
+function OpenSpecialMenu() {
+    if (menuClosed === true) {
+        return;
     }
+
+    if (Game.specialTabs.length !== 0) {
+        Game.specialTab = Game.specialTabs[0];
+        menuClosed = false;
+    }
+
+    setTimeout(OpenSpecialMenu, 1000);
 }
 
-var autoBuyer = async function() {
+function AutoBuyer() {
 	if (stopBuyer) {
 		return;
 	}
 
 	if(buyerEnabled){
 		
-		await sleep(100);
-
 		BuyUpgrades();
 
         if (MultipleBuffsAreActive()) {
@@ -73,8 +88,8 @@ var autoBuyer = async function() {
 		    ShouldBuyUpgrade();
 		}
 	}
-	
-	return autoBuyer();
+
+    setTimeout(AutoBuyer, 100);
 };
 
 function BuyUpgrades() {
@@ -118,7 +133,7 @@ function BuyBuilding() {
 		
         if (isNaN(profit)) {
 
-            if (timeToBuyBuilding <= 60) {
+            if (timeToBuyBuilding <= 60 * runtime) {
                 index = i;
                 break;
             }
@@ -127,7 +142,7 @@ function BuyBuilding() {
         }
 
         var haveEnoughtMoney = $(shops[i]).hasClass("enabled");
-        if (!haveEnoughtMoney && timeToBuyBuilding <= 60 || haveEnoughtMoney){
+        if (!haveEnoughtMoney && timeToBuyBuilding <= 60 * runtime || haveEnoughtMoney){
             var ratio = profit / buildingPrice;
             if (ratio > previousRatio) {
                 previousRatio = ratio;
@@ -156,11 +171,11 @@ function ShouldBuyUpgrade() {
         var upgradePrice = GetUpgradePrice();
         var timeToBuyUpgrade = GetRemainingTimeToBuy(upgradePrice);
 
-        if (timeToBuyUpgrade <= 60) {
+        if (timeToBuyUpgrade <= 60 * runtime) {
             buyBuildings = false;
         }
 
-        if (buyBuildings && timeToBuyUpgrade <= 300) {
+        if (buyBuildings && timeToBuyUpgrade <= 300 * runtime) {
             var shops = $(".product.unlocked");
             buyBuildings = false;
             for (var i = 0; i < shops.length; i++){
@@ -168,7 +183,7 @@ function ShouldBuyUpgrade() {
                 var buildingPrice = GetAmount(buildingPriceText);
                 var timeToBuyBuilding = GetRemainingTimeToBuy(buildingPrice);
 																				
-                if (timeToBuyBuilding < 180) {
+                if (timeToBuyBuilding < 180 * runtime) {
                     buyBuildings = true;
                 }
             }
@@ -176,14 +191,13 @@ function ShouldBuyUpgrade() {
     }
 }
 
-var wrinklerKiller = async function() {
-	while(true){
-		await sleep(100);
-		var wrinklers = Game.wrinklers;
-		for(var i = 0; i < wrinklers.length; i++){
-			wrinklers[i].hp = 0;
-		}
+function WrinklerKiller() {
+	var wrinklers = Game.wrinklers;
+	for(var i = 0; i < wrinklers.length; i++){
+		wrinklers[i].hp = 0;
 	}
+
+    setTimeout(WrinklerKiller, 100);
 }
 
 function GetAmount(text) {
@@ -238,23 +252,25 @@ function GetRemainingTimeToBuy(upgradeCost) {
 function GetUpgradePrice() {
     var cheapestUpgrade = $("#upgrades").find(".crate.upgrade").first().attr("onmouseover");
     var upgradeDataFunction = reUpgradeDataFunction.exec(cheapestUpgrade);
-    var upgradeData = eval(upgradeDataFunction[0]);
-    var upgradePriceText = $(upgradeData).find(".price").first().text();
-    var upgradePrice = GetAmount(upgradePriceText);
+    if (upgradeDataFunction !== null) {
+        var upgradeData = eval(upgradeDataFunction[0]);
+        var upgradePriceText = $(upgradeData).find(".price").first().text();
+        var upgradePrice = GetAmount(upgradePriceText);
 
-    return upgradePrice;
+        return upgradePrice;
+    }
 }
 
 function StartClicker() {
 	log("Starting clicker!");
 	stopClicker = false;
-	autoClicker();
+	AutoClicker();
 }
 
 function StartBuyer() {
 	log("Starting buyer!");
 	stopBuyer = false;
-	autoBuyer();
+	AutoBuyer();
 }
 
 function StopClicker(reason) {
@@ -276,8 +292,9 @@ function StopBuyer(reason) {
 }
 
 function BlastOff() {
-	wrinklerKiller();
+    WrinklerKiller();
+    GetRuntime();
 	StartClicker();
 	StartBuyer();
-    openSpecialMenu();
+    OpenSpecialMenu();
 }
