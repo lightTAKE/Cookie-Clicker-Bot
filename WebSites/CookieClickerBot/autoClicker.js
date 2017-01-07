@@ -5,7 +5,8 @@ var buyUpgrades = true;
 var stopClicker = false;
 var stopBuyer = false;
 var menuClosed = true;
-var runtime = 0;
+var runtime = 1;
+var waitTimeMultiplier = 1;
 
 var reUpgradeDataFunction = /Game\.crate\(Game\.UpgradesById\[\d+\],\'store\',undefined,undefined,\d\)\(\);/;
 var reWrathCookie = /wrathCookie\.png/;
@@ -34,9 +35,18 @@ function GetRuntime() {
         runtime = digits;
     } else if (timeType === "days" || timeType === "day") {
         runtime = digits * 24;
-    } 
+    }
+
+    WaitTimeMultiplier();
 
     setTimeout(GetRuntime, 60000);
+}
+
+function WaitTimeMultiplier() {
+    waitTimeMultiplier = runtime;
+    if (waitTimeMultiplier / 24 > 1) {
+        waitTimeMultiplier = parseInt(waitTimeMultiplier * waitTimeMultiplier / 24);
+    }
 }
 
 function AutoClicker() {
@@ -133,7 +143,7 @@ function BuyBuilding() {
 		
         if (isNaN(profit)) {
 
-            if (timeToBuyBuilding <= 60 * runtime) {
+            if (timeToBuyBuilding <= 60 * waitTimeMultiplier) {
                 index = i;
                 break;
             }
@@ -142,7 +152,7 @@ function BuyBuilding() {
         }
 
         var haveEnoughtMoney = $(shops[i]).hasClass("enabled");
-        if (!haveEnoughtMoney && timeToBuyBuilding <= 60 * runtime || haveEnoughtMoney){
+        if (!haveEnoughtMoney && timeToBuyBuilding <= 60 * waitTimeMultiplier || haveEnoughtMoney) {
             var ratio = profit / buildingPrice;
             if (ratio > previousRatio) {
                 previousRatio = ratio;
@@ -171,11 +181,11 @@ function ShouldBuyUpgrade() {
         var upgradePrice = GetUpgradePrice();
         var timeToBuyUpgrade = GetRemainingTimeToBuy(upgradePrice);
 
-        if (timeToBuyUpgrade <= 60 * runtime) {
+        if (timeToBuyUpgrade <= 60 * waitTimeMultiplier) {
             buyBuildings = false;
         }
 
-        if (buyBuildings && timeToBuyUpgrade <= 300 * runtime) {
+        if (buyBuildings && timeToBuyUpgrade <= 300 * waitTimeMultiplier) {
             var shops = $(".product.unlocked");
             buyBuildings = false;
             for (var i = 0; i < shops.length; i++){
@@ -183,7 +193,7 @@ function ShouldBuyUpgrade() {
                 var buildingPrice = GetAmount(buildingPriceText);
                 var timeToBuyBuilding = GetRemainingTimeToBuy(buildingPrice);
 																				
-                if (timeToBuyBuilding < 180 * runtime) {
+                if (timeToBuyBuilding < 180 * waitTimeMultiplier) {
                     buyBuildings = true;
                 }
             }
