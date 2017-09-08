@@ -26,15 +26,9 @@ function log(message) {
 }
 
 function GetRuntime() {
-    var timeParameters =  $("#menu .listing").eq(3).text().split(":")[1].trim().split(" ");
-    var digits = parseInt(timeParameters[0]);
-    var timeType = timeParameters[1];
-    if (timeType === "seconds" || timeType === "second" || runtime === "minutes" || runtime === "minute") {
+    runtime = (Date.now()-Game.startDate)/1000/60/60;
+    if (runtime <= 1) {
         runtime = 1;
-    } else if (timeType === "hours" || timeType === "hour") {
-        runtime = digits;
-    } else if (timeType === "days" || timeType === "day") {
-        runtime = digits * 24;
     }
 
     WaitTimeMultiplier();
